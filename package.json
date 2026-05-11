@@ -1,0 +1,9 @@
+{
+  "name": "brandreel-ai",
+  "version": "1.0.0",
+  "description": "BrandReel AI — AI Video Prompt Generator",
+  "main": "api/generate.js",
+  "engines": {
+    "node": "18.x"
+  }
+}
