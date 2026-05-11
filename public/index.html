@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BrandReel AI — Video Prompt Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080810; --surface:#0f0f1a; --card:#13131f; --border:#22223a;
+  --accent:#e8ff47; --accent2:#ff4f7b; --accent3:#4fffcb;
+  --text:#f0f0fa; --muted:#5a5a80; --muted2:#8888b0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Lato',sans-serif;min-height:100vh;}
+.wrap{max-width:800px;margin:0 auto;padding:36px 20px 80px;}
+.app-header{text-align:center;margin-bottom:40px;}
+.logo{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;letter-spacing:-1px;}
+.logo em{color:var(--accent);font-style:normal;}
+.header-sub{color:var(--muted2);font-size:14px;margin-top:8px;line-height:1.6;}
+.form-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;margin-bottom:16px;}
+.card-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+.card-title::before{content:'';width:16px;height:2px;background:var(--accent);}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:24px 14px;text-align:center;cursor:pointer;transition:all 0.25s;background:var(--surface);position:relative;min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.upload-zone:hover{border-color:var(--accent);background:rgba(232,255,71,0.03);}
+.upload-zone.has-file{border-color:var(--accent3);border-style:solid;}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-preview{width:80px;height:80px;border-radius:10px;object-fit:cover;display:none;margin-bottom:8px;}
+.upload-preview.show{display:block;}
+.upload-emoji{font-size:28px;margin-bottom:8px;}
+.upload-title{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:4px;}
+.upload-hint{font-size:11px;color:var(--muted);line-height:1.5;}
+.upload-ok{color:var(--accent3);font-size:12px;font-weight:700;margin-top:6px;display:none;}
+.has-file .upload-ok{display:block;}
+.has-file .upload-emoji{display:none;}
+.field-group{margin-bottom:16px;}
+.field-label{display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);font-weight:700;margin-bottom:7px;}
+.field-input,.field-select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:12px 14px;color:var(--text);font-family:'Lato',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+.field-input:focus,.field-select:focus{border-color:var(--accent);}
+.field-input::placeholder{color:var(--muted);}
+.field-select{cursor:pointer;-webkit-appearance:none;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.pills{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px;}
+.pill{padding:7px 14px;border-radius:100px;border:1px solid var(--border);font-size:12px;color:var(--muted2);cursor:pointer;transition:all 0.2s;background:var(--surface);user-select:none;}
+.pill:hover{border-color:var(--accent);color:var(--accent);}
+.pill.sel-style{background:rgba(232,255,71,0.1);border-color:var(--accent);color:var(--accent);font-weight:700;}
+.pill.sel-plat{background:rgba(255,79,123,0.1);border-color:var(--accent2);color:var(--accent2);font-weight:700;}
+.gen-btn{width:100%;background:var(--accent);color:#080810;padding:17px;border-radius:11px;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.2s,transform 0.2s;margin-top:6px;}
+.gen-btn:hover{opacity:0.92;transform:translateY(-2px);}
+.gen-btn:disabled{opacity:0.35;cursor:not-allowed;transform:none;}
+.err{background:rgba(255,79,123,0.08);border:1px solid rgba(255,79,123,0.3);border-radius:10px;padding:16px 20px;font-size:13px;color:#ff6b8a;display:none;margin-top:14px;line-height:1.6;}
+.err.show{display:block;}
+.loading{display:none;text-align:center;padding:60px 20px;}
+.loading.show{display:block;}
+.ring{width:56px;height:56px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-t{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);}
+.loading-s{font-size:12px;color:var(--muted);margin-top:6px;}
+.results{display:none;}
+.results.show{display:block;}
+.res-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+.res-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;}
+.res-title span{color:var(--accent);}
+.reset-btn{background:transparent;border:1px solid var(--border);color:var(--muted2);padding:7px 18px;border-radius:100px;font-size:12px;cursor:pointer;transition:all 0.2s;}
+.reset-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+.block{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:14px;overflow:hidden;}
+.block-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);}
+.block-name{display:flex;align-items:center;gap:10px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;}
+.badge{padding:3px 11px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+.b-kling{background:rgba(255,79,123,0.15);color:#ff4f7b;border:1px solid rgba(255,79,123,0.3);}
+.b-runway{background:rgba(123,79,255,0.15);color:#9f7fff;border:1px solid rgba(123,79,255,0.3);}
+.b-pika{background:rgba(79,255,203,0.12);color:#4fffcb;border:1px solid rgba(79,255,203,0.3);}
+.b-heygen{background:rgba(232,255,71,0.12);color:#e8ff47;border:1px solid rgba(232,255,71,0.3);}
+.copy-btn{background:transparent;border:1px solid var(--border);color:var(--muted2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;transition:all 0.2s;}
+.copy-btn:hover,.copy-btn.ok{border-color:var(--accent3);color:var(--accent3);}
+.block-body{padding:20px;}
+.mono{font-family:'DM Mono',monospace;font-size:12px;line-height:1.9;color:#c8c8e8;white-space:pre-wrap;word-break:break-word;}
+.note-row{display:flex;gap:8px;font-size:12px;color:var(--muted2);line-height:1.6;margin-bottom:6px;}
+.note-dot{color:var(--accent);flex-shrink:0;}
+.sub-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:14px 0 8px;}
+.analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.ana-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.ana-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;margin-bottom:8px;}
+.ana-text{font-size:13px;color:#c0c0e0;line-height:1.7;}
+.concept-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;}
+.scene-item{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid rgba(34,34,58,0.5);}
+.scene-item:last-child{border-bottom:none;padding-bottom:0;}
+.scene-num{width:30px;height:30px;border-radius:7px;background:rgba(232,255,71,0.1);border:1px solid rgba(232,255,71,0.3);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:var(--accent);flex-shrink:0;}
+.scene-body{flex:1;}
+.scene-dur{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:700;margin-bottom:4px;}
+.scene-desc{font-size:13px;color:#c0c0e0;line-height:1.6;margin-bottom:6px;}
+.scene-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.stag{font-size:10px;padding:2px 9px;border-radius:100px;border:1px solid var(--border);color:var(--muted2);background:var(--surface);}
+.tips-card{background:rgba(232,255,71,0.03);border:1px solid rgba(232,255,71,0.15);border-radius:12px;padding:20px;margin-bottom:14px;}
+.tips-title{font-family:'Syne',sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
+@media(max-width:560px){.upload-grid{grid-template-columns:1fr}.field-row{grid-template-columns:1fr}.analysis-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="app-header">
+  <div class="logo">Brand<em>Reel</em> AI</div>
+  <p class="header-sub">Upload your product + your face → get ultra-detailed AI video prompts<br>ready to paste into Kling, Runway, Pika, or HeyGen.</p>
+</div>
+
+<div id="formSection">
+  <div class="form-card">
+    <div class="card-title">Step 1 — Upload Photos</div>
+    <div class="upload-grid">
+      <div class="upload-zone" id="pZone">
+        <input type="file" accept="image/*" onchange="handleUp('product',this)">
+        <img class="upload-preview" id="pPrev" src="" alt="">
+        <div class="upload-emoji">📦</div>
+        <div class="upload-title">Product Photo</div>
+        <div class="upload-hint">Clear photo of your product</div>
+        <div class="upload-ok">✓ Product uploaded</div>
+      </div>
+      <div class="upload-zone" id="fZone">
+        <input type="file" accept="image/*" onchange="handleUp('face',this)">
+        <img class="upload-preview" id="fPrev" src="" alt="">
+        <div class="upload-emoji">🤳</div>
+        <div class="upload-title">Your Face Photo</div>
+        <div class="upload-hint">Clear selfie or headshot</div>
+        <div class="upload-ok">✓ Face uploaded</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <div class="card-title">Step 2 — Video Details</div>
+    <div class="field-group">
+      <label class="field-label">Brand / Product Name</label>
+      <input class="field-input" id="brandName" type="text" placeholder="e.g. 2AM Balm, Meraki Prime...">
+    </div>
+    <div class="field-group">
+      <label class="field-label">What does your product do?</label>
+      <input class="field-input" id="prodDesc" type="text" placeholder="e.g. Sleep essential oil roll-on that calms anxiety and helps you fall asleep faster">
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <label class="field-label">Target Customer</label>
+        <input class="field-input" id="target" type="text" placeholder="e.g. Millennial women, stressed, can't sleep">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Video Duration</label>
+        <select class="field-select" id="duration">
+          <option value="15">15 seconds</option>
+          <option value="30" selected>30 seconds</option>
+          <option value="60">60 seconds</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Video Style</label>
+      <div class="pills" id="stylePills">
+        <div class="pill sel-style" onclick="selStyle(this)">✨ Soft & Aesthetic</div>
+        <div class="pill" onclick="selStyle(this)">🔥 Hype / Energetic</div>
+        <div class="pill" onclick="selStyle(this)">🎭 Emotional / Story</div>
+        <div class="pill" onclick="selStyle(this)">💼 Professional / Clean</div>
+        <div class="pill" onclick="selStyle(this)">🌙 Dark & Moody</div>
+        <div class="pill" onclick="selStyle(this)">☀️ Bright & Fun</div>
+        <div class="pill" onclick="selStyle(this)">🎬 Cinematic</div>
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Target Platforms</label>
+      <div class="pills" id="platPills">
+        <div class="pill sel-plat" onclick="togPlat(this)">📱 TikTok</div>
+        <div class="pill sel-plat" onclick="togPlat(this)">📸 Reels</div>
+        <div class="pill" onclick="togPlat(this)">▶️ YouTube Shorts</div>
+        <div class="pill" onclick="togPlat(this)">🎭 Facebook</div>
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Specific scene or concept? (optional)</label>
+      <input class="field-input" id="extra" type="text" placeholder="e.g. Me applying the product before bed, warm candlelight, cozy bedroom...">
+    </div>
+  </div>
+
+  <button class="gen-btn" id="genBtn" onclick="generate()">🎬 Generate My AI Video Prompts</button>
+  <div class="err" id="errBox"></div>
+</div>
+
+<div class="loading" id="loadDiv">
+  <div class="ring"></div>
+  <div class="loading-t" id="loadT">Analyzing your photos...</div>
+  <div class="loading-s" id="loadS">Reading product + face for video direction</div>
+</div>
+
+<div class="results" id="resDiv">
+  <div class="res-header">
+    <div class="res-title">Your <span>Prompts</span> Are Ready 🎬</div>
+    <button class="reset-btn" onclick="resetApp()">← Start Over</button>
+  </div>
+  <div id="resContent"></div>
+</div>
+
+</div>
+
+<script>
+let prodB64=null,faceB64=null,prodMime='image/jpeg',faceMime='image/jpeg';
+let style='Soft & Aesthetic',platforms=['TikTok','Reels'];
+let loadInt;
+
+function handleUp(type,inp){
+  const file=inp.files[0]; if(!file) return;
+  const mime=file.type||'image/jpeg';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const b64=e.target.result.split(',')[1];
+    if(type==='product'){
+      prodB64=b64; prodMime=mime;
+      document.getElementById('pPrev').src=e.target.result;
+      document.getElementById('pPrev').classList.add('show');
+      document.getElementById('pZone').classList.add('has-file');
+    } else {
+      faceB64=b64; faceMime=mime;
+      document.getElementById('fPrev').src=e.target.result;
+      document.getElementById('fPrev').classList.add('show');
+      document.getElementById('fZone').classList.add('has-file');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function selStyle(el){
+  document.querySelectorAll('#stylePills .pill').forEach(p=>p.classList.remove('sel-style'));
+  el.classList.add('sel-style');
+  style=el.textContent.replace(/^\S+\s/,'').trim();
+}
+function togPlat(el){
+  el.classList.toggle('sel-plat');
+  platforms=Array.from(document.querySelectorAll('#platPills .sel-plat')).map(p=>p.textContent.replace(/^\S+\s/,'').trim());
+}
+
+const msgs=[
+  ['Analyzing your photos...','Reading product + face for video direction'],
+  ['Building your scenes...','Crafting cinematic directions for each platform'],
+  ['Writing AI video prompts...','Making prompts ultra-specific for Kling, Runway & more'],
+  ['Adding final touches...','Camera angles, lighting, motion details...'],
+];
+function startLoad(){
+  let i=0;
+  document.getElementById('loadT').textContent=msgs[0][0];
+  document.getElementById('loadS').textContent=msgs[0][1];
+  loadInt=setInterval(()=>{i=(i+1)%msgs.length;document.getElementById('loadT').textContent=msgs[i][0];document.getElementById('loadS').textContent=msgs[i][1];},2800);
+}
+function stopLoad(){clearInterval(loadInt);}
+function showErr(msg){const b=document.getElementById('errBox');b.textContent='⚠️ '+msg;b.classList.add('show');}
+
+async function generate(){
+  document.getElementById('errBox').classList.remove('show');
+  const brand=document.getElementById('brandName').value.trim();
+  const desc=document.getElementById('prodDesc').value.trim();
+  const target=document.getElementById('target').value.trim();
+  const duration=document.getElementById('duration').value;
+  const extra=document.getElementById('extra').value.trim();
+
+  if(!prodB64){showErr('Please upload a product photo.');return;}
+  if(!faceB64){showErr('Please upload your face photo.');return;}
+  if(!brand){showErr('Please enter your brand or product name.');return;}
+  if(!desc){showErr('Please describe what your product does.');return;}
+
+  document.getElementById('formSection').style.display='none';
+  document.getElementById('loadDiv').classList.add('show');
+  document.getElementById('resDiv').classList.remove('show');
+  startLoad();
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        productImage: prodB64,
+        faceImage: faceB64,
+        productMime: prodMime,
+        faceMime: faceMime,
+        brand, desc, target, duration, style, platforms, extra
+      })
+    });
+
+    const result = await res.json();
+    stopLoad();
+
+    if(result.error) throw new Error(result.error);
+
+    document.getElementById('loadDiv').classList.remove('show');
+    document.getElementById('resDiv').classList.add('show');
+    render(result, brand);
+
+  } catch(err){
+    stopLoad();
+    document.getElementById('loadDiv').classList.remove('show');
+    document.getElementById('formSection').style.display='block';
+    showErr('Error: '+err.message+'. Please try again.');
+  }
+}
+
+function cpText(btn,txt){
+  navigator.clipboard.writeText(txt).then(()=>{
+    const orig=btn.textContent;
+    btn.textContent='✓ Copied!';btn.classList.add('ok');
+    setTimeout(()=>{btn.textContent=orig;btn.classList.remove('ok');},2000);
+  });
+}
+
+function render(d,brand){
+  const c=document.getElementById('resContent');
+  let h='';
+
+  h+=`<div class="analysis-grid">
+    <div class="ana-card"><div class="ana-label" style="color:#ff4f7b;">📦 Product — What AI Sees</div><div class="ana-text">${e(d.product_analysis)}</div></div>
+    <div class="ana-card"><div class="ana-label" style="color:#4fffcb;">👤 You — Talent Direction</div><div class="ana-text">${e(d.person_analysis)}</div></div>
+  </div>`;
+
+  const vc=d.video_concept||{};
+  h+=`<div class="concept-card">
+    <div class="sub-label" style="color:#e8ff47;margin-top:0;">🎬 Video Concept</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div><span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:700;">Concept</span><br><span style="font-size:15px;font-weight:700;">${e(vc.title)}</span></div>
+      <div><span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:700;">Hook (0–3s)</span><br><span style="font-size:13px;color:#c0c0e0;line-height:1.6;">${e(vc.hook_moment)}</span></div>
+      <div><span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:700;">Emotional Angle</span><br><span style="font-size:13px;color:#c0c0e0;">${e(vc.emotional_angle)}</span></div>
+      <div><span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:700;">Key Message</span><br><span style="font-size:14px;color:#e8ff47;font-style:italic;">"${e(vc.key_message)}"</span></div>
+    </div>
+  </div>`;
+
+  if(d.scenes?.length){
+    h+=`<div class="block"><div class="block-head"><div class="block-name">🎥 Scene Breakdown</div></div><div class="block-body">`;
+    d.scenes.forEach(s=>{
+      h+=`<div class="scene-item">
+        <div class="scene-num">${s.scene_num}</div>
+        <div class="scene-body">
+          <div class="scene-dur">${e(s.duration)}</div>
+          <div class="scene-desc">${e(s.description)}</div>
+          <div class="scene-tags">
+            <span class="stag">👤 ${e(s.person_action)}</span>
+            <span class="stag">📦 ${e(s.product_placement)}</span>
+            <span class="stag">📷 ${e(s.camera)}</span>
+            <span class="stag">💡 ${e(s.lighting)}</span>
+          </div>
+        </div>
+      </div>`;
+    });
+    h+=`</div></div>`;
+  }
+
+  const p=d.prompts||{};
+  if(p.kling) h+=pBlock('Kling AI','b-kling',p.kling.main_prompt,[['Camera Motion',p.kling.camera_motion],['Negative Prompt',p.kling.negative_prompt],['Settings Tip',p.kling.settings_tip]]);
+  if(p.runway) h+=pBlock('Runway ML','b-runway',p.runway.main_prompt,[['Motion Brush',p.runway.motion_brush_tip],['Negative Prompt',p.runway.negative_prompt],['Settings Tip',p.runway.settings_tip]]);
+  if(p.pika) h+=pBlock('Pika Labs','b-pika',p.pika.main_prompt,[['Motion Params',p.pika.motion_params],['Negative Prompt',p.pika.negative_prompt]]);
+
+  if(p.heygen){
+    const hg=p.heygen;
+    h+=`<div class="block">
+      <div class="block-head">
+        <div class="block-name">🤖 <span class="badge b-heygen">HeyGen</span> Spokesperson</div>
+        <button class="copy-btn" onclick="cpText(this,${JSON.stringify(hg.script||'')})">📋 Copy Script</button>
+      </div>
+      <div class="block-body">
+        <div class="sub-label" style="margin-top:0;">Avatar Setup Direction</div>
+        <div class="mono">${e(hg.avatar_direction)}</div>
+        <div class="sub-label">Word-for-Word Script</div>
+        <div class="mono" style="background:rgba(232,255,71,0.04);border:1px solid rgba(232,255,71,0.15);border-radius:10px;padding:14px;">${e(hg.script)}</div>
+        <div style="margin-top:14px;">
+          <div class="note-row"><span class="note-dot">→</span><span><strong style="color:#e0e0f0;">Background:</strong> ${e(hg.background_scene)}</span></div>
+          <div class="note-row"><span class="note-dot">→</span><span><strong style="color:#e0e0f0;">Lower Third:</strong> ${e(hg.lower_third)}</span></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if(d.director_notes?.length){
+    h+=`<div class="tips-card">
+      <div class="tips-title">💡 Director's Tips</div>
+      ${d.director_notes.map(n=>`<div class="note-row" style="margin-bottom:8px;"><span class="note-dot">✓</span><span style="font-size:13px;color:#c0c0e0;line-height:1.6;">${e(n)}</span></div>`).join('')}
+    </div>`;
+  }
+
+  c.innerHTML=h;
+}
+
+function e(str){ return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function pBlock(name,badge,mainPrompt,notes){
+  return `<div class="block">
+    <div class="block-head">
+      <div class="block-name">🎬 <span class="badge ${badge}">${name}</span> Main Prompt</div>
+      <button class="copy-btn" onclick="cpText(this,${JSON.stringify(mainPrompt||'')})">📋 Copy</button>
+    </div>
+    <div class="block-body">
+      <div class="mono">${e(mainPrompt)}</div>
+      <div style="margin-top:14px;">${notes.map(([l,v])=>`<div class="note-row"><span class="note-dot">→</span><span><strong style="color:#e0e0f0;">${l}:</strong> ${e(v)}</span></div>`).join('')}</div>
+    </div>
+  </div>`;
+}
+
+function resetApp(){
+  prodB64=null;faceB64=null;
+  ['pPrev','fPrev'].forEach(id=>{const el=document.getElementById(id);el.classList.remove('show');el.src='';});
+  ['pZone','fZone'].forEach(id=>document.getElementById(id).classList.remove('has-file'));
+  ['brandName','prodDesc','target','extra'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('errBox').classList.remove('show');
+  document.getElementById('formSection').style.display='block';
+  document.getElementById('resDiv').classList.remove('show');
+  document.getElementById('loadDiv').classList.remove('show');
+}
+</script>
+</body>
+</html>
